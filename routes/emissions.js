@@ -113,7 +113,8 @@ router.post('/flightinfo', async (req, res) => {
         );
 
         const flight = response.data[0]; // usually array of flights
-
+        console.log(flight);
+        console.log(response);
         if (!flight) return res.status(404).json({ message: 'Flight not found' });
 
         const duration =
