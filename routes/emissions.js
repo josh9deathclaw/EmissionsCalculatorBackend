@@ -117,8 +117,8 @@ router.post('/flightinfo', async (req, res) => {
         if (!flight) return res.status(404).json({ message: 'Flight not found' });
 
         const duration =
-            (new Date(flight.arrival.scheduledTimeUtc) -
-                new Date(flight.departure.scheduledTimeUtc)) /
+            (new Date(flight.arrival.scheduledTime.utc) -
+                new Date(flight.departure.scheduledTime.utc)) /
             (1000 * 60 * 60);
 
         res.json({
