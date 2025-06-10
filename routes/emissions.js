@@ -92,7 +92,7 @@ router.get('/leaderboard', auth, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch leaderboard' });
     }
 });
-router.post('/flight-info', async (req, res) => {
+router.post('/flightinfo', async (req, res) => {
     const { flightCode, flightDate } = req.body;
 
     if (!flightCode || !flightDate) {
@@ -100,10 +100,10 @@ router.post('/flight-info', async (req, res) => {
     }
 
     try {
-        const [carrier, number] = flightCode.match(/[A-Za-z]+|[0-9]+/g);
+        /*const [carrier, number] = flightCode.match(/[A-Za-z]+|[0-9]+/g);*/
 
         const response = await axios.get(
-            `https://aerodatabox.p.rapidapi.com/flights/number/${carrier}${number}/${flightDate}`,
+            `https://aerodatabox.p.rapidapi.com/flights/number/${flightCode}/${flightDate}`,
             {
                 headers: {
                     'X-RapidAPI-Key': process.env.AERODATABOX_API_KEY,
