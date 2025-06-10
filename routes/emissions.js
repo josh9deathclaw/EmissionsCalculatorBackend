@@ -106,7 +106,7 @@ router.post('/flightinfo', async (req, res) => {
             `https://aerodatabox.p.rapidapi.com/flights/number/${flightCode}/${flightDate}`,
             {
                 headers: {
-                    'X-RapidAPI-Key': process.env.AERODATABOX_API_KEY,
+                    'X-RapidAPI-Key': process.env.AERODATABOX_KEY,
                     'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com'
                 }
             }
