@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const Emission = require('../models/Emission');
 const auth = require('../middleware/authMiddleware');
+const axios = require('axios');
 
 // Log new emission
 router.post('/log', auth, async (req, res) => {
@@ -91,5 +92,29 @@ router.get('/leaderboard', auth, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch leaderboard' });
     }
 });
+router.post('/flight-info', async (req, res) => {
+    const { flightCode, flightDate } = req.body;
+    try {
+        const [carrier, number] = flightCode.match(/[A-Za-z]+|[0-9]+/g);
+        const response = await axios.get(`https://aerodatabox.p.rapidapi.com/flights/number/${carrier}${number}/${flightDate}`, {
+            headers: {
+            'X-RapidAPI-Key': process.env.AERODATABOX_API_KEY,
+            'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com'
+        }
+    });
 
+const flight = response.data?.departures?.[0];
+if (!flight) return res.status(404).json({ message: 'Flight not found' });
+
+const duration = (new Date(flight.arrival.scheduledTimeUtc) - new Date(flight.departure.scheduledTimeUtc)) / 1000 / 3600;
+
+res.json({
+    durationHours: parseFloat(duration.toFixed(2)),
+    airline: flight.airline.name
+});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching flight info' });
+}
+});
 module.exports = router;
