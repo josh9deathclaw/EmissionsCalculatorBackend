@@ -101,7 +101,7 @@ router.post('/flightinfo', async (req, res) => {
 
     try {
         /*const [carrier, number] = flightCode.match(/[A-Za-z]+|[0-9]+/g);*/
-
+        console.log('API KEY:', process.env.AERODATABOX_API_KEY); // should NOT be undefined
         const response = await axios.get(
             `https://aerodatabox.p.rapidapi.com/flights/number/${flightCode}/${flightDate}`,
             {
