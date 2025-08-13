@@ -4,7 +4,63 @@ const router = express.Router();
 const Emission = require('../models/Emission');
 const auth = require('../middleware/authMiddleware');
 const axios = require('axios');
+router.get('/car/makes', async (req, res) => {
+    try {
+        const response = await axios.get(
+            'https://www.carboninterface.com/api/v1/vehicle_makes',
+            {
+                headers: { Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}` }
+            }
+        );
+        res.json(response.data);
+    } catch (err) {
+        console.error('Carbon Interface makes error:', err.message);
+        res.status(500).json({ error: 'Failed to fetch vehicle makes' });
+    }
+});
 
+// 2. Get all models for a make
+router.get('/car/models/:makeId', async (req, res) => {
+    try {
+        const { makeId } = req.params;
+        const response = await axios.get(
+            `https://www.carboninterface.com/api/v1/vehicle_makes/${makeId}/vehicle_models`,
+            {
+                headers: { Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}` }
+            }
+        );
+        res.json(response.data);
+    } catch (err) {
+        console.error('Carbon Interface models error:', err.message);
+        res.status(500).json({ error: 'Failed to fetch vehicle models' });
+    }
+});
+
+// 3. Calculate emissions (preview only)
+router.post('/car/emissions', async (req, res) => {
+    try {
+        const { vehicleModelId, distanceKm } = req.body;
+        const response = await axios.post(
+            'https://www.carboninterface.com/api/v1/estimates',
+            {
+                type: 'vehicle',
+                distance_unit: 'km',
+                distance_value: distanceKm,
+                vehicle_model_id: vehicleModelId
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        res.json(response.data);
+    } catch (err) {
+        console.error('Carbon Interface emission calc error:', err.message);
+        res.status(500).json({ error: 'Failed to calculate vehicle emissions' });
+    }
+});
 // Log new emission
 router.post('/log', auth, async (req, res) => {
     try {
@@ -12,11 +68,44 @@ router.post('/log', auth, async (req, res) => {
 
         // Emission factor logic (basic fallback)
         let emissionKg = 0;
+        let record;
+        const userId = req.user.id;
+        const base = {
+            userId,
+            transportMode,
+            distanceKm,
+            date: new Date()
+        };
 
         if (transportMode === 'car') {
-            const fuelEff = metadata?.fuelEfficiency || 7.5;
+            try {
+                const carbonRes = await axios.post(
+                    'https://carboninterface.com/api/v1/estimates',
+                    {
+                        type: 'vehicle',
+                        distance_unit: 'km',
+                        distance_value: distanceKm,
+                        vehicle_model_id: req.body.vehicleModelId
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        }
+
+                    }
+                );
+
+                emissionKg = carbonRes.data.data.attributes.carbon_kg;
+            
+            }
+            catch (err) {
+                console.error('Carbon Interface error:', err.response?.data || err.message);
+                return res.status(500).json({ error: 'Failed to fetch car emissions' });
+            }
+            /*const fuelEff = metadata?.fuelEfficiency || 7.5;
             const factor = metadata?.factor || 2.31;
-            emissionKg = (fuelEff / 100) * distanceKm * factor;
+            emissionKg = (fuelEff / 100) * distanceKm * factor;*/
         } else if (transportMode === 'flight') {
             const ef = metadata?.airlineFactor || 0.09;
             const multiplier = metadata?.classMultiplier || 1;
