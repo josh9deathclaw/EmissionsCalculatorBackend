@@ -63,8 +63,8 @@ router.post('/car/emissions', async (req, res) => {
             }),
             {
                 headers: {
-                    'x-rapidapi-key': process.env.CARBONSUTRA_KEY,
-                    'x-rapidapi-host': 'carbonsutra1.p.rapidapi.com',
+                    'x-rapidapi-host': CARBONSUTRA_HOST,
+                    'x-rapidapi-key': CARBONSUTRA_KEY,
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             }
@@ -95,8 +95,8 @@ router.post('/log', auth, async (req, res) => {
                         }),
                         {
                             headers: {
-                                'x-rapidapi-key': process.env.CARBONSUTRA_KEY,
-                                'x-rapidapi-host': 'carbonsutra1.p.rapidapi.com',
+                                'x-rapidapi-host': CARBONSUTRA_HOST,
+                                'x-rapidapi-key': CARBONSUTRA_KEY,
                                 'Content-Type': 'application/x-www-form-urlencoded'
                             }
                         }
