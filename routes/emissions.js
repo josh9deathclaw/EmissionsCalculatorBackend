@@ -78,7 +78,7 @@ router.post('/car/emissions', async (req, res) => {
 // Log new emission
 router.post('/log', auth, async (req, res) => {
     try {
-        const { transportMode, distanceKm, vehicleMake, vehicleModel, trips, extraLoad, metadata } = req.body;
+        const { transportMode, vehicleMake, vehicleModel, distanceKm, trips, extraLoad, metadata } = req.body;
         let emissionKg = 0;
         const userId = req.user.id;
         const base = { userId, transportMode, distanceKm, date: new Date() };
@@ -102,8 +102,8 @@ router.post('/log', auth, async (req, res) => {
                         }
                     );
 
-                emissionKg = (carbonRes.data?.data?.CO2E_KG || 0); // g ? kg
-
+                emissionKg = (carbonRes.data.data.co2e_kg || 0); // g ? kg
+                console.log(emissionKg);
                 // Apply extra load % if needed
                 const loadFactors = {
                     none: 0,
