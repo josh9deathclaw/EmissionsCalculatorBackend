@@ -4,55 +4,48 @@ const router = express.Router();
 const Emission = require('../models/Emission');
 const auth = require('../middleware/authMiddleware');
 const axios = require('axios');
+const CARBONSUTRA_HOST = 'carbonsutra1.p.rapidapi.com';
+const CARBONSUTRA_KEY = process.env.AERODATABOX_API_KEY;
 
 router.get('/car/makes', async (req, res) => {
     try {
-        // Check if API key is loaded
-        if (!process.env.CARBON_INTERFACE_API_KEY) {
-            console.error("? Carbon Interface API key is MISSING!");
-            return res.status(500).json({ error: "Server missing Carbon Interface API key" });
-        }
-        console.log("? Carbon Interface API key is loaded");
-
-        // Call Carbon Interface API
+        
         const response = await axios.get(
-            'https://www.carboninterface.com/api/v1/vehicle_makes',
+            `https://${CARBONSUTRA_HOST}/vehicle_makes`,
             {
-                headers: { Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}` }
+                headers: {
+                    'x-rapidapi-host':CARBONSUTRA_HOST,
+                    'x-rapidapi-key': CARBONSUTRA_KEY
+                }
             }
 );
 
-// Log and return the data
-console.log("? Carbon Interface returned makes:", response.data);
+
 res.json(response.data);
 
     } catch (err) {
-    if (err.response) {
-        console.error("? Carbon Interface API error:", err.response.status, err.response.data);
-        return res.status(err.response.status).json({
-            error: err.response.data || "Carbon Interface API error"
-        });
-    } else {
-        console.error("? Server error calling Carbon Interface:", err.message);
-        return res.status(500).json({ error: err.message });
+        console.error("CarbonSutra Makes Error:", err.response?.data || err.message);
+        res.status(500).json({ error: 'Failed to fetch vehicle makes' });
     }
-}
 });
 
 // 2. Get all models for a make
-router.get('/car/models/:makeId', async (req, res) => {
+router.get('/car/models/:make', async (req, res) => {
     try {
-        const { makeId } = req.params;
+        const { make } = req.params;
         const response = await axios.get(
-            `https://www.carboninterface.com/api/v1/vehicle_makes/${makeId}/vehicle_models`,
+            `https://${CARBONSUTRA_HOST}/vehicle_makes/${make}/vehicle_models`,
             {
-                headers: { Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}` }
+                headers: {
+                    'x-rapidapi-host': CARBONSUTRA_HOST,
+                    'x-rapidapi-key': CARBONSUTRA_KEY
+                }
             }
         );
         res.json(response.data);
     } catch (err) {
-        console.error('Carbon Interface models error:', err.message);
-        res.status(500).json({ error: 'Failed to fetch vehicle models' });
+        console.error("CarbonSutra Makes Error:", err.response?.data || err.message);
+        res.status(500).json({ error: 'Failed to fetch vehicle makes' });
     }
 });
 
