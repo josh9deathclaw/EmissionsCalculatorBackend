@@ -85,20 +85,21 @@ router.post('/log', auth, async (req, res) => {
 
         if (transportMode === 'car') {
             try {
-                `https://${CARBONSUTRA_HOST}/vehicle_estimate_by_model`,
-                {
-                    params: {
-                        VEHICLE_MAKE: vehicleMake,
-                        VEHICLE_MODEL: vehicleModel,
-                        DISTANCE_VALUE: distanceKm,
-                        DISTANCE_UNIT: 'km'
-                    },
-                    headers: {
-                        'x-rapidapi-key': CARBONSUTRA_KEY,
-                        'x-rapidapi-host': CARBONSUTRA_HOST,
-                        'Content-Type': 'application/x-www-form-urlencoded'
+                const carbonRes = await axios.get(
+                    `https://${CARBONSUTRA_HOST}/vehicle_estimate_by_model`,
+                    {
+                        params: {
+                            VEHICLE_MAKE: vehicleMake,
+                            VEHICLE_MODEL: vehicleModel,
+                            DISTANCE_VALUE: distanceKm,
+                            DISTANCE_UNIT: 'km'
+                        },
+                        headers: {
+                            'x-rapidapi-key': CARBONSUTRA_KEY,
+                            'x-rapidapi-host': CARBONSUTRA_HOST,
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        }
                     }
-                }
                 );
 
                 emissionKg = (carbonRes.data.CO2E_GM || 0) / 1000; // g ? kg
