@@ -102,7 +102,7 @@ router.post('/log', auth, async (req, res) => {
                         }
                     );
 
-                emissionKg = (carbonRes.data.CO2E_GM || 0) / 1000; // g ? kg
+                emissionKg = (carbonRes.data?.data?.CO2E_KG || 0); // g ? kg
 
                 // Apply extra load % if needed
                 const loadFactors = {
