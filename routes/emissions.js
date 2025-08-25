@@ -56,30 +56,45 @@ router.get('/car/models/:makeId', async (req, res) => {
     }
 });
 
-// 3. Calculate emissions (preview only)
-router.post('/car/emissions', async (req, res) => {
-    try {
-        const { vehicleModelId, distanceKm } = req.body;
-        const response = await axios.post(
-            'https://www.carboninterface.com/api/v1/estimates',
-            {
-                type: 'vehicle',
-                distance_unit: 'km',
-                distance_value: distanceKm,
-                vehicle_model_id: vehicleModelId
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-        res.json(response.data);
-    } catch (err) {
-        console.error('Carbon Interface emission calc error:', err.message);
-        res.status(500).json({ error: 'Failed to calculate vehicle emissions' });
-    }
+// 3. Calculate emissions (testing)
+router.post("/car/emissions", async (req, res) => {
+  try {
+    const { vehicleModelId, distanceKm, trips, extraLoadType } = req.body;
+
+    // Call Carbon Interface API
+    const carbonRes = await fetch("https://www.carboninterface.com/api/v1/estimates", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.CARBON_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "vehicle",
+        distance_unit: "km",
+        distance_value: distanceKm,
+        vehicle_model_id: vehicleModelId
+      })
+    });
+
+    const carbonData = await carbonRes.json();
+    const emissionKg = carbonData.data.attributes.carbon_kg;
+
+    // Convert to tonnes & calculate totals
+    const emissionPerTrip = emissionKg / 1000;
+    const emissionPerWeek = emissionPerTrip * trips;
+    const emissionPerYear = emissionPerWeek * 52;
+
+    res.json({
+      success: true,
+      emissionPerTrip,
+      emissionPerWeek,
+      emissionPerYear
+    });
+
+  } catch (error) {
+    console.error("Error calculating emissions:", error);
+    res.status(500).json({ error: "Emission calculation failed" });
+  }
 });
 // Log new emission
 router.post('/log', auth, async (req, res) => {
