@@ -54,7 +54,7 @@ router.post('/car/emissions', async (req, res) => {
     try {
         const { vehicleMake, vehicleModel, distanceKm } = req.body;
         const response = await axios.get(
-            `https://${CARBONSUTRA_HOST}/vehicle_model_emission`,
+            `https://${CARBONSUTRA_HOST}/vehicle_estimate_by_model`,
             {
                 params: {
                     VEHICLE_MAKE: vehicleMake,
@@ -64,7 +64,8 @@ router.post('/car/emissions', async (req, res) => {
                 },
                 headers: {
                     'x-rapidapi-key': CARBONSUTRA_KEY,
-                    'x-rapidapi-host': CARBONSUTRA_HOST
+                    'x-rapidapi-host': CARBONSUTRA_HOST,
+                    'Content-Type': 'application/x-www-form-urlencoded'
                 }
             }
         );
@@ -84,20 +85,20 @@ router.post('/log', auth, async (req, res) => {
 
         if (transportMode === 'car') {
             try {
-                const carbonRes = await axios.get(
-                    `https://${CARBONSUTRA_HOST}/vehicle_model_emission`,
-                    {
-                        params: {
-                            VEHICLE_MAKE: vehicleMake,
-                            VEHICLE_MODEL: vehicleModel,
-                            DISTANCE_VALUE: distanceKm,
-                            DISTANCE_UNIT: 'km'
-                        },
-                        headers: {
-                            'x-rapidapi-key': CARBONSUTRA_KEY,
-                            'x-rapidapi-host': CARBONSUTRA_HOST
-                        }
+                `https://${CARBONSUTRA_HOST}/vehicle_estimate_by_model`,
+                {
+                    params: {
+                        VEHICLE_MAKE: vehicleMake,
+                        VEHICLE_MODEL: vehicleModel,
+                        DISTANCE_VALUE: distanceKm,
+                        DISTANCE_UNIT: 'km'
+                    },
+                    headers: {
+                        'x-rapidapi-key': CARBONSUTRA_KEY,
+                        'x-rapidapi-host': CARBONSUTRA_HOST,
+                        'Content-Type': 'application/x-www-form-urlencoded'
                     }
+                }
                 );
 
                 emissionKg = (carbonRes.data.CO2E_GM || 0) / 1000; // g ? kg
