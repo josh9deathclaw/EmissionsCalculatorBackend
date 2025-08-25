@@ -49,9 +49,9 @@ router.get('/car/models/:makeId', async (req, res) => {
                 headers: { Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}` }
             }
         );
-        res.json(response.data);
+        res.json(response.data.data);
     } catch (err) {
-        console.error('Carbon Interface models error:', err.message);
+        console.error('Carbon Interface models error:', err.response?.data || err.message);
         res.status(500).json({ error: 'Failed to fetch vehicle models' });
     }
 });
