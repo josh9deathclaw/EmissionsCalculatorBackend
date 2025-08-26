@@ -190,7 +190,32 @@ router.get('/leaderboard', auth, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch leaderboard' });
     }
 });
-router.post('/flightinfo', async (req, res) => {
+router.get('/air/airports', async (req, res) => {
+    try {
+        const { keyword } = req.query;
+        if (!keyword) {
+            return res.status(400).json({ error: "keyword is required" });
+        }
+
+        const response = await axios.get(
+            `https://carbonsutra1.p.rapidapi.com/airports-by-keyword`,
+            {
+                params: { keyword },
+                headers: {
+                    'x-rapidapi-host': CARBONSUTRA_HOST,
+                    'x-rapidapi-key': CARBONSUTRA_KEY
+                }
+            }
+        );
+
+        res.json(response.data);
+    }
+    catch (err) {
+        console.error("CarbonSutra Airport Search Error:", err.response?.data || err.message);
+        res.status(500).json({ error: "Failed to fetch airports" });
+    }
+});
+/*router.post('/flightinfo', async (req, res) => {
     const { flightCode, flightDate } = req.body;
 
     if (!flightCode || !flightDate) {
@@ -198,7 +223,7 @@ router.post('/flightinfo', async (req, res) => {
     }
 
     try {
-        /*const [carrier, number] = flightCode.match(/[A-Za-z]+|[0-9]+/g);*/
+        *//*const [carrier, number] = flightCode.match(/[A-Za-z]+|[0-9]+/g);*//*
         console.log('API KEY:', process.env.AERODATABOX_API_KEY); // should NOT be undefined
         const response = await axios.get(
             `https://aerodatabox.p.rapidapi.com/flights/number/${flightCode}/${flightDate}`,
@@ -228,5 +253,6 @@ router.post('/flightinfo', async (req, res) => {
         console.error('Flight API Error:', err.message);
         res.status(500).json({ message: 'Error fetching flight info' });
     }
-});
+});*/
+
 module.exports = router;
