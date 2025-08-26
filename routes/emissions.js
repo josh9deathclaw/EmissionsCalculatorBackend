@@ -215,6 +215,47 @@ router.get('/air/airports', async (req, res) => {
         res.status(500).json({ error: "Failed to fetch airports" });
     }
 });
+// Flight emission estimate using CarbonSutra
+router.post('/flight/emissions', auth, async (req, res) => {
+    try {
+        const {
+            fromAirport,
+            toAirport,
+            passengers = 1,
+            flightClass = "Average",  // CarbonSutra expects "Average", "Economy", "Business", "First"
+            roundTrip = false
+        } = req.body;
+
+        if (!fromAirport || !toAirport) {
+            return res.status(400).json({ error: "From and To airports are required." });
+        }
+
+        const response = await axios.post(
+            "https://carbonsutra1.p.rapidapi.com/flight_estimate",
+            new URLSearchParams({
+                from: fromAirport,
+                to: toAirport,
+                number_of_passengers: passengers.toString(),
+                flight_class: flightClass,
+                round_trip: roundTrip ? "Y" : "N",   // ? round trip support
+                add_rf: "Y",                         // ? include radiative forcing
+                include_wtt: "Y"                     // ? include well-to-tank emissions
+            }),
+            {
+                headers: {
+                    'x-rapidapi-host': CARBONSUTRA_HOST,
+                    'x-rapidapi-key': CARBONSUTRA_KEY,
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            }
+        );
+
+        res.json(response.data);
+    } catch (err) {
+        console.error("CarbonSutra Flight Estimate Error:", err.response?.data || err.message);
+        res.status(500).json({ error: "Failed to calculate flight emissions" });
+    }
+});
 /*router.post('/flightinfo', async (req, res) => {
     const { flightCode, flightDate } = req.body;
 
