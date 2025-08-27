@@ -78,64 +78,31 @@ router.post('/car/emissions', async (req, res) => {
 // Log new emission
 router.post('/log', auth, async (req, res) => {
     try {
-        const { transportMode, vehicleMake, vehicleModel, distanceKm, trips, extraLoad, metadata } = req.body;
-        let emissionKg = 0;
+        const {
+            transportMode,
+            distanceKm,
+            emissionKg,       // <-- directly sent from frontend
+            vehicleMake,
+            vehicleModel,
+            trips,
+            extraLoad,
+            metadata
+        } = req.body;
+
         const userId = req.user.id;
-        const base = { userId, transportMode, distanceKm, date: new Date() };
 
-        if (transportMode === 'car') {
-            try {
-                const carbonRes = await axios.post(
-                       `https://${CARBONSUTRA_HOST}/vehicle_estimate_by_model`,
-                        new URLSearchParams({
-                            vehicle_make: vehicleMake,
-                            vehicle_model: vehicleModel,
-                            distance_value: distanceKm.toString(),
-                            distance_unit: 'km'
-                        }),
-                        {
-                            headers: {
-                                'x-rapidapi-host': CARBONSUTRA_HOST,
-                                'x-rapidapi-key': CARBONSUTRA_KEY,
-                                'Content-Type': 'application/x-www-form-urlencoded'
-                            }
-                        }
-                    );
-
-                emissionKg = (carbonRes.data.data.co2e_kg || 0); // g ? kg
-                console.log(emissionKg);
-                // Apply extra load % if needed
-                const loadFactors = {
-                    none: 0,
-                    caravan: 10,
-                    boat: 15,
-                    'trailer-light': 5,
-                    'trailer-medium': 10,
-                    'trailer-heavy': 20
-                };
-                emissionKg *= (1 + (loadFactors[extraLoad] || 0) / 100);
-
-            } catch (err) {
-                console.error('CarbonSutra error:', err.response?.data || err.message);
-                return res.status(500).json({ error: 'Failed to fetch car emissions' });
-            }
-        } else if (transportMode === 'flight') {
-            const ef = metadata?.airlineFactor || 0.09;
-            const multiplier = metadata?.classMultiplier || 1;
-            emissionKg = metadata?.flights * metadata?.hours * ef * multiplier * 1000;
-        } else {
-            const fallbackFactors = { bus: 0.0001, tram: 0.00007, metro: 0.00006 };
-            emissionKg = distanceKm * (fallbackFactors[transportMode.toLowerCase()] || 0);
-        }
-
+        // Build new emission record (no API call here)
         const newEmission = new Emission({
-            ...base,
-            emissionKg,
+            userId,
+            transportMode,
+            distanceKm,
+            emissionKg,       // <-- save what frontend calculated
             brand: vehicleMake,
             model: vehicleModel,
             trips,
             extraLoad,
-            metadata
+            metadata,
+            date: new Date()
         });
 
         await newEmission.save();
