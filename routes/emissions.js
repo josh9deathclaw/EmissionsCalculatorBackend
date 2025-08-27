@@ -233,8 +233,8 @@ router.post('/flight/emissions', auth, async (req, res) => {
         const response = await axios.post(
             `https://carbonsutra1.p.rapidapi.com/flight_estimate`,
             new URLSearchParams({
-                from: fromAirport,
-                to: toAirport,
+                iata_airport_from: fromAirport,
+                iata_airport_to: toAirport,
                 number_of_passengers: passengers.toString(),
                 flight_class: flightClass,
                 round_trip: roundTrip ? "Y" : "N",   // ? round trip support
