@@ -222,7 +222,7 @@ router.post('/flight/emissions', auth, async (req, res) => {
             fromAirport,
             toAirport,
             passengers = 1,
-            flightClass = "Average",  // CarbonSutra expects "Average", "Economy", "Business", "First"
+            flightClass = "economy",  // CarbonSutra expects "Average", "Economy", "Business", "First"
             roundTrip = false
         } = req.body;
 
@@ -231,7 +231,7 @@ router.post('/flight/emissions', auth, async (req, res) => {
         }
 
         const response = await axios.post(
-            "https://carbonsutra1.p.rapidapi.com/flight_estimate",
+            `https://carbonsutra1.p.rapidapi.com/flight_estimate`,
             new URLSearchParams({
                 from: fromAirport,
                 to: toAirport,
