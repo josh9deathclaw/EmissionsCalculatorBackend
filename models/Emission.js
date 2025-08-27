@@ -14,9 +14,10 @@ const emissionSchema = new mongoose.Schema({
     extraLoad: String,
 
     // Flight-specific
-    flights: Number,
-    hoursPerFlight: Number,
-    airline: String,
+    passengers: Number,
+    roundTrip: Boolean,
+    fromAirport: String,
+    toAirport: String,
     flightClass: String
 });
 
