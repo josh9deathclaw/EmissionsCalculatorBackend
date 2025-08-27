@@ -245,5 +245,38 @@ router.post('/bus/emissions', async (req, res) => {
         res.status(500).json({ error: "Failed to calculate bus emissions" });
     }
 });
+router.post('/metro/emissions', async (req, res) => {
+    try {
+        const { distanceKm } = req.body;
+        if (!distanceKm) {
+            return res.status(400).json({ error: "distanceKm is required" });
+        }
 
+        // Bus emission factor (kg CO2 per km)
+        const factor = 0.00006; // adjust if needed
+        const emissionKg = distanceKm * factor;
+
+        res.json({ emissionKg });
+    } catch (err) {
+        console.error("Bus emission calc error:", err.message);
+        res.status(500).json({ error: "Failed to calculate bus emissions" });
+    }
+});
+router.post('/tram/emissions', async (req, res) => {
+    try {
+        const { distanceKm } = req.body;
+        if (!distanceKm) {
+            return res.status(400).json({ error: "distanceKm is required" });
+        }
+
+        // Bus emission factor (kg CO2 per km)
+        const factor = 0.00007; // adjust if needed
+        const emissionKg = distanceKm * factor;
+
+        res.json({ emissionKg });
+    } catch (err) {
+        console.error("Bus emission calc error:", err.message);
+        res.status(500).json({ error: "Failed to calculate bus emissions" });
+    }
+});
 module.exports = router;
