@@ -86,6 +86,8 @@ router.post('/log', auth, async (req, res) => {
             vehicleModel,
             trips,
             extraLoad,
+            fromAirport,
+            toAirport,
             metadata
         } = req.body;
 
@@ -101,6 +103,8 @@ router.post('/log', auth, async (req, res) => {
             model: vehicleModel,
             trips,
             extraLoad,
+            fromAirport,
+            toAirport,
             metadata,
             date: new Date()
         });
