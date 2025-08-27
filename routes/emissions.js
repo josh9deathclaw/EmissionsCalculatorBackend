@@ -227,44 +227,23 @@ router.post('/flight/emissions', auth, async (req, res) => {
         res.status(500).json({ error: "Failed to calculate flight emissions" });
     }
 });
-/*router.post('/flightinfo', async (req, res) => {
-    const { flightCode, flightDate } = req.body;
-
-    if (!flightCode || !flightDate) {
-        return res.status(400).json({ message: 'Flight code and date are required.' });
-    }
-
+// Calculate bus emissions
+router.post('/bus/emissions', async (req, res) => {
     try {
-        *//*const [carrier, number] = flightCode.match(/[A-Za-z]+|[0-9]+/g);*//*
-        console.log('API KEY:', process.env.AERODATABOX_API_KEY); // should NOT be undefined
-        const response = await axios.get(
-            `https://aerodatabox.p.rapidapi.com/flights/number/${flightCode}/${flightDate}`,
-            {
-                headers: {
-                    'X-RapidAPI-Key': process.env.AERODATABOX_KEY,
-                    'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com'
-                }
-            }
-        );
+        const { distanceKm } = req.body;
+        if (!distanceKm) {
+            return res.status(400).json({ error: "distanceKm is required" });
+        }
 
-        const flight = response.data[0]; // usually array of flights
-        console.log(flight);
-        console.log(response);
-        if (!flight) return res.status(404).json({ message: 'Flight not found' });
+        // Bus emission factor (kg CO2 per km)
+        const factor = 0.0001; // adjust if needed
+        const emissionKg = distanceKm * factor;
 
-        const duration =
-            (new Date(flight.arrival.scheduledTime.utc) -
-                new Date(flight.departure.scheduledTime.utc)) /
-            (1000 * 60 * 60);
-
-        res.json({
-            duration: parseFloat(duration.toFixed(2)),
-            airline: flight.airline.name
-        });
+        res.json({ emissionKg });
     } catch (err) {
-        console.error('Flight API Error:', err.message);
-        res.status(500).json({ message: 'Error fetching flight info' });
+        console.error("Bus emission calc error:", err.message);
+        res.status(500).json({ error: "Failed to calculate bus emissions" });
     }
-});*/
+});
 
 module.exports = router;
