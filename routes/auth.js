@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const { register, login } = require("../controllers/authController");
+const auth = require("../middleware/authMiddleware");   
+const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 
 router.post("/register", register);
 router.post("/login", login);
