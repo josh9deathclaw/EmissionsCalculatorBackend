@@ -4,153 +4,113 @@ const router = express.Router();
 const Emission = require('../models/Emission');
 const auth = require('../middleware/authMiddleware');
 const axios = require('axios');
+const CARBONSUTRA_HOST = 'carbonsutra1.p.rapidapi.com';
+const CARBONSUTRA_KEY = "75b8b67afbmsh69128b84bfc32d6p1a819ejsn61be73c53fe6";
 
 router.get('/car/makes', async (req, res) => {
     try {
-        // Check if API key is loaded
-        if (!process.env.CARBON_INTERFACE_API_KEY) {
-            console.error("? Carbon Interface API key is MISSING!");
-            return res.status(500).json({ error: "Server missing Carbon Interface API key" });
-        }
-        console.log("? Carbon Interface API key is loaded");
-
-        // Call Carbon Interface API
+        
         const response = await axios.get(
-            'https://www.carboninterface.com/api/v1/vehicle_makes',
+            `https://${CARBONSUTRA_HOST}/vehicle_makes`,
             {
-                headers: { Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}` }
+                headers: {
+                    'x-rapidapi-host':CARBONSUTRA_HOST,
+                    'x-rapidapi-key': CARBONSUTRA_KEY
+                }
             }
 );
 
-// Log and return the data
-console.log("? Carbon Interface returned makes:", response.data);
+
 res.json(response.data);
 
     } catch (err) {
-    if (err.response) {
-        console.error("? Carbon Interface API error:", err.response.status, err.response.data);
-        return res.status(err.response.status).json({
-            error: err.response.data || "Carbon Interface API error"
-        });
-    } else {
-        console.error("? Server error calling Carbon Interface:", err.message);
-        return res.status(500).json({ error: err.message });
+        console.error("CarbonSutra Makes Error:", err.response?.data || err.message);
+        res.status(500).json({ error: 'Failed to fetch vehicle makes' });
     }
-}
 });
 
 // 2. Get all models for a make
-router.get('/car/models/:makeId', async (req, res) => {
+router.get('/car/models/:make', async (req, res) => {
     try {
-        const { makeId } = req.params;
+        const { make } = req.params;
         const response = await axios.get(
-            `https://www.carboninterface.com/api/v1/vehicle_makes/${makeId}/vehicle_models`,
+            `https://${CARBONSUTRA_HOST}/vehicle_makes/${make}/vehicle_models`,
             {
-                headers: { Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}` }
+                headers: {
+                    'x-rapidapi-host': CARBONSUTRA_HOST,
+                    'x-rapidapi-key': CARBONSUTRA_KEY
+                }
             }
         );
         res.json(response.data);
     } catch (err) {
-        console.error('Carbon Interface models error:', err.message);
-        res.status(500).json({ error: 'Failed to fetch vehicle models' });
+        console.error("CarbonSutra Makes Error:", err.response?.data || err.message);
+        res.status(500).json({ error: 'Failed to fetch vehicle makes' });
     }
 });
 
 // 3. Calculate emissions (preview only)
 router.post('/car/emissions', async (req, res) => {
     try {
-        const { vehicleModelId, distanceKm } = req.body;
+        const { vehicleMake, vehicleModel, distanceKm } = req.body;
         const response = await axios.post(
-            'https://www.carboninterface.com/api/v1/estimates',
-            {
-                type: 'vehicle',
-                distance_unit: 'km',
-                distance_value: distanceKm,
-                vehicle_model_id: vehicleModelId
-            },
+            `https://${CARBONSUTRA_HOST}/vehicle_estimate_by_model`,
+            new URLSearchParams({
+                vehicle_make: vehicleMake,
+                vehicle_model: vehicleModel,
+                distance_value: distanceKm.toString(),
+                distance_unit: 'km'
+            }),
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}`,
-                    'Content-Type': 'application/json'
+                    'x-rapidapi-host': CARBONSUTRA_HOST,
+                    'x-rapidapi-key': CARBONSUTRA_KEY,
+                    'Content-Type': 'application/x-www-form-urlencoded'
                 }
             }
         );
         res.json(response.data);
     } catch (err) {
-        console.error('Carbon Interface emission calc error:', err.message);
+        console.error("CarbonSutra Emission Calc Error:", err.response?.data || err.message);
         res.status(500).json({ error: 'Failed to calculate vehicle emissions' });
     }
 });
 // Log new emission
 router.post('/log', auth, async (req, res) => {
     try {
-        const { transportMode, distanceKm, metadata } = req.body;
+        const {
+            transportMode,
+            distanceKm,
+            emissionKg,       // <-- directly sent from frontend
+            vehicleMake,
+            vehicleModel,
+            trips,
+            extraLoad,
+            fromAirport,
+            toAirport,
+            metadata
+        } = req.body;
 
-        // Emission factor logic (basic fallback)
-        let emissionKg = 0;
-        let record;
         const userId = req.user.id;
-        const base = {
+
+        // Build new emission record (no API call here)
+        const newEmission = new Emission({
             userId,
             transportMode,
             distanceKm,
-            date: new Date()
-        };
-
-        if (transportMode === 'car') {
-            try {
-                const carbonRes = await axios.post(
-                    'https://carboninterface.com/api/v1/estimates',
-                    {
-                        type: 'vehicle',
-                        distance_unit: 'km',
-                        distance_value: distanceKm,
-                        vehicle_model_id: req.body.vehicleModelId
-                    },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${process.env.CARBON_INTERFACE_API_KEY}`,
-                            'Content-Type': 'application/json'
-                        }
-
-                    }
-                );
-
-                emissionKg = carbonRes.data.data.attributes.carbon_kg;
-            
-            }
-            catch (err) {
-                console.error('Carbon Interface error:', err.response?.data || err.message);
-                return res.status(500).json({ error: 'Failed to fetch car emissions' });
-            }
-            /*const fuelEff = metadata?.fuelEfficiency || 7.5;
-            const factor = metadata?.factor || 2.31;
-            emissionKg = (fuelEff / 100) * distanceKm * factor;*/
-        } else if (transportMode === 'flight') {
-            const ef = metadata?.airlineFactor || 0.09;
-            const multiplier = metadata?.classMultiplier || 1;
-            emissionKg = metadata?.flights * metadata?.hours * ef * multiplier * 1000;
-        } else {
-            // fallback for public transport
-            const fallbackFactors = {
-                bus: 0.0001,
-                tram: 0.00007,
-                metro: 0.00006
-            };
-            emissionKg = distanceKm * (fallbackFactors[transportMode.toLowerCase()] || 0);
-        }
-
-        const newEmission = new Emission({
-            userId: req.user.id,
-            transportMode,
-            distanceKm,
+            emissionKg,       // <-- save what frontend calculated
+            brand: vehicleMake,
+            model: vehicleModel,
+            trips,
+            extraLoad,
+            fromAirport,
+            toAirport,
             metadata,
-            emissionKg,
             date: new Date()
         });
 
         await newEmission.save();
-        res.json({ message: 'Emission log saved' });
+        res.json({ message: 'Emission log saved', emissionKg });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to log emission' });
@@ -201,43 +161,122 @@ router.get('/leaderboard', auth, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch leaderboard' });
     }
 });
-router.post('/flightinfo', async (req, res) => {
-    const { flightCode, flightDate } = req.body;
-
-    if (!flightCode || !flightDate) {
-        return res.status(400).json({ message: 'Flight code and date are required.' });
-    }
-
+router.get('/air/airports', async (req, res) => {
     try {
-        /*const [carrier, number] = flightCode.match(/[A-Za-z]+|[0-9]+/g);*/
-        console.log('API KEY:', process.env.AERODATABOX_API_KEY); // should NOT be undefined
+        const { keyword } = req.query;
+        if (!keyword) {
+            return res.status(400).json({ error: "keyword is required" });
+        }
+
         const response = await axios.get(
-            `https://aerodatabox.p.rapidapi.com/flights/number/${flightCode}/${flightDate}`,
+            `https://carbonsutra1.p.rapidapi.com/airports-by-keyword`,
             {
+                params: { keyword },
                 headers: {
-                    'X-RapidAPI-Key': process.env.AERODATABOX_KEY,
-                    'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com'
+                    'x-rapidapi-host': CARBONSUTRA_HOST,
+                    'x-rapidapi-key': CARBONSUTRA_KEY
                 }
             }
         );
 
-        const flight = response.data[0]; // usually array of flights
-        console.log(flight);
-        console.log(response);
-        if (!flight) return res.status(404).json({ message: 'Flight not found' });
+        res.json(response.data);
+    }
+    catch (err) {
+        console.error("CarbonSutra Airport Search Error:", err.response?.data || err.message);
+        res.status(500).json({ error: "Failed to fetch airports" });
+    }
+});
+// Flight emission estimate using CarbonSutra
+router.post('/flight/emissions', auth, async (req, res) => {
+    try {
+        const {
+            fromAirport,
+            toAirport,
+            passengers = 1,
+            flightClass = "economy",  // CarbonSutra expects "Average", "Economy", "Business", "First"
+            roundTrip = false
+        } = req.body;
 
-        const duration =
-            (new Date(flight.arrival.scheduledTime.utc) -
-                new Date(flight.departure.scheduledTime.utc)) /
-            (1000 * 60 * 60);
+        if (!fromAirport || !toAirport) {
+            return res.status(400).json({ error: "From and To airports are required." });
+        }
 
-        res.json({
-            duration: parseFloat(duration.toFixed(2)),
-            airline: flight.airline.name
-        });
+        const response = await axios.post(
+            `https://carbonsutra1.p.rapidapi.com/flight_estimate`,
+            new URLSearchParams({
+                iata_airport_from: fromAirport,
+                iata_airport_to: toAirport,
+                number_of_passengers: passengers.toString(),
+                flight_class: flightClass,
+                round_trip: roundTrip ? "Y" : "N",   // ? round trip support
+                add_rf: "Y",                         // ? include radiative forcing
+                include_wtt: "Y"                     // ? include well-to-tank emissions
+            }),
+            {
+                headers: {
+                    'x-rapidapi-host': CARBONSUTRA_HOST,
+                    'x-rapidapi-key': CARBONSUTRA_KEY,
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            }
+        );
+
+        res.json(response.data);
     } catch (err) {
-        console.error('Flight API Error:', err.message);
-        res.status(500).json({ message: 'Error fetching flight info' });
+        console.error("CarbonSutra Flight Estimate Error:", err.response?.data || err.message);
+        res.status(500).json({ error: "Failed to calculate flight emissions" });
+    }
+});
+// Calculate bus emissions
+router.post('/bus/emissions', async (req, res) => {
+    try {
+        const { distanceKm } = req.body;
+        if (!distanceKm) {
+            return res.status(400).json({ error: "distanceKm is required" });
+        }
+
+        // Bus emission factor (kg CO2 per km)
+        const factor = 0.0001; // adjust if needed
+        const emissionKg = distanceKm * factor;
+
+        res.json({ emissionKg });
+    } catch (err) {
+        console.error("Bus emission calc error:", err.message);
+        res.status(500).json({ error: "Failed to calculate bus emissions" });
+    }
+});
+router.post('/metro/emissions', async (req, res) => {
+    try {
+        const { distanceKm } = req.body;
+        if (!distanceKm) {
+            return res.status(400).json({ error: "distanceKm is required" });
+        }
+
+        // Bus emission factor (kg CO2 per km)
+        const factor = 0.00006; // adjust if needed
+        const emissionKg = distanceKm * factor;
+
+        res.json({ emissionKg });
+    } catch (err) {
+        console.error("Bus emission calc error:", err.message);
+        res.status(500).json({ error: "Failed to calculate bus emissions" });
+    }
+});
+router.post('/tram/emissions', async (req, res) => {
+    try {
+        const { distanceKm } = req.body;
+        if (!distanceKm) {
+            return res.status(400).json({ error: "distanceKm is required" });
+        }
+
+        // Bus emission factor (kg CO2 per km)
+        const factor = 0.00007; // adjust if needed
+        const emissionKg = distanceKm * factor;
+
+        res.json({ emissionKg });
+    } catch (err) {
+        console.error("Bus emission calc error:", err.message);
+        res.status(500).json({ error: "Failed to calculate bus emissions" });
     }
 });
 module.exports = router;
