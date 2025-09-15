@@ -5,14 +5,22 @@ const cors = require("cors");
 
 const authRoutes = require("./routes/auth");
 const emissionRoutes = require("./routes/emissions");
-const tripRoutes = require("./routes/trips"); // Add this line
+const tripRoutes = require("./routes/trips"); 
 const aiRoutes = require('./routes/ai');
 
 dotenv.config();
 
 const app = express();
+
+// log the payload size
+app.use((req, res, next) => {
+  console.log("Incoming payload size:", req.headers["content-length"]);
+  next();
+});
+
 app.use(cors());
-app.use(express.json());
+
+app.use(express.json({ limit: "5mb" }));
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connected"))
@@ -21,7 +29,7 @@ mongoose.connect(process.env.MONGO_URI)
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/emissions", emissionRoutes);
-app.use("/api/trips", tripRoutes); // Add this line
+app.use("/api/trips", tripRoutes);
 app.use('/api/ai', aiRoutes);
 
 // Basic health check route

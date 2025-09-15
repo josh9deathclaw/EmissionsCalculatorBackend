@@ -11,6 +11,6 @@ router.post('/predict', authMiddleware, AIController.predictTransportMode);
 router.get('/health', AIController.checkAIHealth);
 
 // Batch prediction for analysis
-router.post('/batch-predict', authMiddleware, AIController.batchPredict);
+// router.post('/batch-predict', authMiddleware, AIController.batchPredict);
 
 module.exports = router;
