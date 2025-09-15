@@ -11,8 +11,9 @@ router.post("/login", login);
 router.post("/change-password", auth, async (req, res) => {
     try {
         const { oldPassword, newPassword } = req.body;
+        console.log("Request body:", req.body);
         const user = await User.findById(req.user.id);
-
+        console.log("User found:", user ? user.email : "none");
         if (!user) return res.status(404).json({ error: "User not found" });
 
         // Check old password
