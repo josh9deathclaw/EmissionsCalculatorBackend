@@ -5,7 +5,7 @@ const Emission = require('../models/Emission');
 const auth = require('../middleware/authMiddleware');
 const axios = require('axios');
 const CARBONSUTRA_HOST = 'carbonsutra1.p.rapidapi.com';
-const CARBONSUTRA_KEY = process.env.AERODATABOX_KEY;
+const CARBONSUTRA_KEY = '75b8b67afbmsh69128b84bfc32d6p1a819ejsn61be73c53fe6';
 
 router.get('/car/makes', async (req, res) => {
     try {
