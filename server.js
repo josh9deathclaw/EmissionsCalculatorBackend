@@ -9,7 +9,15 @@ const emissionRoutes = require("./routes/emissions");
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: [
+        "https://emissionscalculator.duckdns.org", // your frontend domain
+        "http://localhost:5173" // keep for local dev
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+}));
 app.use(express.json());
 
 mongoose.connect(process.env.MONGO_URI)
