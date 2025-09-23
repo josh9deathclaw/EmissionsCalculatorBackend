@@ -20,7 +20,7 @@ app.use((req, res, next) => {
 
 app.use(cors());
 
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json({ limit: "50mb" }));
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connected"))
