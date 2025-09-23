@@ -11,16 +11,16 @@ const aiRoutes = require('./routes/ai');
 dotenv.config();
 
 const app = express();
-
-// log the payload size
-app.use((req, res, next) => {
-  console.log("Incoming payload size:", req.headers["content-length"]);
-  next();
-});
-
-app.use(cors());
-
-app.use(express.json({ limit: "50mb" }));
+app.use(cors({
+    origin: [
+        "https://emissionscalculator.duckdns.org", // your frontend domain
+        "http://localhost:5173" // keep for local dev
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+}));
+app.use(express.json());
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connected"))
